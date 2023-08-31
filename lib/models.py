@@ -9,21 +9,33 @@ metadata = MetaData(naming_convention=convention)
 
 Base = declarative_base(metadata=metadata)
 
-class Company(Base):
+class Company(db.Model):
     __tablename__ = 'companies'
 
-    id = Column(Integer(), primary_key=True)
-    name = Column(String())
-    founding_year = Column(Integer())
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    founding_year = db.Column(db.Integer, nullable=False)
 
-    def __repr__(self):
-        return f'<Company {self.name}>'
+    def give_freebie(self, dev, item_name, value):
+        freebie = Freebie(dev=dev, company=self, item_name=item_name, value=value)
+        db.session.add(freebie)
+        db.session.commit()
 
-class Dev(Base):
+    @classmethod
+    def oldest_company(cls):
+        return cls.query.order_by(cls.founding_year).first()
+
+class Dev(db.Model):
     __tablename__ = 'devs'
 
-    id = Column(Integer(), primary_key=True)
-    name= Column(String())
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
 
-    def __repr__(self):
-        return f'<Dev {self.name}>'
+    def received_one(self, item_name):
+        return any(freebie.item_name == item_name for freebie in self.freebies)
+
+    def give_away(self, other_dev, freebie):
+        if freebie.dev == self:
+            freebie.dev = other_dev
+            db.session.commit()
+
